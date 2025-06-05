@@ -26,5 +26,24 @@ def main():
       Ver estado de credito [B]
       ==================
 """)
+    opciones = str(input("Ingrese una opcion: ")).upper()
+    if opciones == "A":
+        os.system("cls||clear")
+        print(f"""
+              ==============
+              Comprar un ariticulo
+              ==============
+
+
+              """
+              )
+    elif opciones == "B":
+        os.system("cls||clear")
+        print(f"""
+              ==============
+              Ver estado de credito
+              ==============
+              
+              """)
 
 main()
