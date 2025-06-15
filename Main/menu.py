@@ -7,7 +7,7 @@ USER_FILENAME = 'usuarios.txt'
 BASE_PATH = "C:\\Users\\atorr\\OneDrive\\Documentos\\Archivo\\"
 USER_FILE_PATH = os.path.join(BASE_PATH, USER_FILENAME)
 
-productos = dao.ProductDao()  # Corregido error tipográfico
+productos = dao.ProductDao() 
 clientes = dao.ClienteDao()
 
 def cls():
