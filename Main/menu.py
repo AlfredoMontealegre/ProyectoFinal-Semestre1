@@ -1,14 +1,13 @@
 import Dao.funciones as dao
 import Models.clases as mod
 import os
+import sys
 
 USER_FILENAME = 'usuarios.txt'
-
 BASE_PATH = "C:\\Users\\atorr\\OneDrive\\Documentos\\Archivo\\"
-
 USER_FILE_PATH = os.path.join(BASE_PATH, USER_FILENAME)
 
-productos = dao.ProdcutDao()
+productos = dao.ProductDao()  # Corregido error tipográfico
 clientes = dao.ClienteDao()
 
 def cls():
@@ -47,88 +46,54 @@ def menu(usuario_nombre):
       ==================
 """) 
 
-def nombre():
-    """Solicita y valida el nombre y apellido."""
+def validar_input(mensaje, tipo='str'):
     while True:
-        nombre_pila = input("Nombres: ").strip() 
-        if not nombre_pila:
+        entrada = input(mensaje).strip()
+        if not entrada:
             print("⚠️ CAMPO VACÍO. Intente Nuevamente.")
-        elif not nombre_pila.replace(" ", "").isalpha():
-            print("❌ ERROR. Ingrese un dato válido (solo letras).")
-        else:
-            break
-    
-    while True:
-        apellido_pila = input("Apellidos: ").strip() 
-        if not apellido_pila:
-            print("⚠️ CAMPO VACÍO. Intente Nuevamente.")
-        elif not apellido_pila.replace(" ", "").isalpha():
-            print("❌ ERROR. Ingrese un dato válido (solo letras).")
-        else:
-            break
-            
-    nombre_completo = nombre_pila + " " + apellido_pila
-    cls() 
-    return nombre_completo
-        
-def telefono():
-    while True:
-        telefono_num = input("Ingrese su número telefónico: ").strip()
-        if not telefono_num:
-            print("⚠️ CAMPO VACÍO. Intente Nuevamente.")
-        elif not telefono_num.isdigit():
-            print("❌ ERROR. Datos de número de teléfono inválidos (solo dígitos).") 
-        elif len(telefono_num) != 8:
-            print("🟡 Revise los dígitos de su teléfono (debe tener 8 dígitos).")
-        elif not telefono_num.startswith(("8", "7", "5", "2")):
-            print("🟡 El número ingresado no es válido. Los números deben comenzar con 2 (fijos), 5, 7 u 8 (móviles).")
-        else:
-            return telefono_num
-        
-def IdCedula():
-    while True:
-        cedula = input("Digite su número de cédula (sin guiones): ").strip()
-        if not cedula:
-            print("⚠️ CAMPO VACÍO. Intente Nuevamente.")
-        else:
-            solo_cedula = cedula.replace(" ", "") 
-            
-            letras = [char for char in solo_cedula if char.isalpha()]
-            numeros = [char for char in solo_cedula if char.isdigit()]
-            
-            if len(numeros) != 13:
-                print("🟡 Revise los dígitos de su cédula (debe tener 13 números).")
-            elif len(letras) != 1:
-                print("🟡 La cédula solo puede contener una letra.")
-            elif (len(numeros) + len(letras)) != len(solo_cedula):
-                print("❌ ERROR. Datos de cédula inválidos (solo números y una letra).")
-            else:
-                return cedula
+            continue
 
+        if tipo == 'str':
+            if not entrada.replace(" ", "").isalpha():
+                print("❌ ERROR. Ingrese un dato válido (solo letras).")
+                continue
+        elif tipo == 'tel':
+            if not entrada.isdigit() or len(entrada) != 8 or not entrada.startswith(("8", "7", "5", "2")):
+                print("🟡 El número ingresado no es válido. Debe tener 8 dígitos y comenzar con 2 (fijos), 5, 7 u 8 (móviles).")
+                continue
+        elif tipo == 'cedula':
+            letras = [char for char in entrada if char.isalpha()]
+            numeros = [char for char in entrada if char.isdigit()]
+            if len(numeros) != 13 or len(letras) != 1 or (len(numeros) + len(letras)) != len(entrada):
+                print("❌ ERROR. Datos de cédula inválidos (debe tener 13 números y 1 letra).")
+                continue
+        return entrada
 
 def GuardarUsuario(cliente_obj, password_str): 
-    with open(USER_FILE_PATH, 'a', encoding='utf-8') as file:
-
-        file.write(f"{cliente_obj.id},{cliente_obj.nombre},{cliente_obj.telefono},{password_str}\n")
+    try:
+        with open(USER_FILE_PATH, 'a', encoding='utf-8') as file:
+            file.write(f"{cliente_obj.id},{cliente_obj.nombre},{cliente_obj.telefono},{password_str}\n")
+    except Exception as e:
+        print(f"❌ ERROR al guardar el usuario: {e}")
 
 def cargarUsuario():
     usuarios = [] 
-    
-
-    if os.path.exists(USER_FILE_PATH):
-        with open(USER_FILE_PATH, 'r', encoding='utf-8') as file:
-            for line in file:
-                parts = line.strip().split(',')
-                parts = [p.strip() for p in parts] 
-                
-                if len(parts) == 4:
-                    cedula, nombre, telefono, password = parts
-                    usuarios.append({
-                        "cedula": cedula, 
-                        "nombre": nombre, 
-                        "telefono": telefono, 
-                        "password": password
-                    })
+    try:
+        if os.path.exists(USER_FILE_PATH):
+            with open(USER_FILE_PATH, 'r', encoding='utf-8') as file:
+                for line in file:
+                    parts = line.strip().split(',')
+                    parts = [p.strip() for p in parts] 
+                    if len(parts) == 4:
+                        cedula, nombre, telefono, password = parts
+                        usuarios.append({
+                            "cedula": cedula, 
+                            "nombre": nombre, 
+                            "telefono": telefono, 
+                            "password": password
+                        })
+    except Exception as e:
+        print(f"❌ ERROR al cargar los usuarios: {e}")
     return usuarios
     
 def RegistroSesion():
@@ -136,9 +101,9 @@ def RegistroSesion():
     print("""
           ------> REGISTRO DE NUEVO USUARIO <------
           """)
-    nombre_completo = nombre()
-    telefono_num = telefono()
-    cedula_id = IdCedula()
+    nombre_completo = validar_input("Nombres y Apellidos: ", 'str')
+    telefono_num = validar_input("Ingrese su número telefónico: ", 'tel')
+    cedula_id = validar_input("Digite su número de cédula (sin guiones): ", 'cedula')
     
     usuarios_existentes = cargarUsuario() 
     
@@ -148,17 +113,10 @@ def RegistroSesion():
             input("Presione Enter para continuar...")
             return None 
         
-    while True:
-        password = input("Cree su contraseña: ").strip()
-        if not password:
-            print("⚠️ CAMPO VACÍO. Intente Nuevamente.")
-        else:
-            break
-
+    password = validar_input("Cree su contraseña: ")
     nuevo_cliente = mod.Cliente(nombre_completo, cedula_id, telefono_num)
     
     clientes.add(nuevo_cliente) 
-   
     GuardarUsuario(nuevo_cliente, password)
     
     print("\n¡¡Registro Exitoso!! Ahora puedes iniciar sesión.")
@@ -171,19 +129,8 @@ def InicioSesion():
           ====== INICIAR SESIÓN ======
           """) 
 
-    while True: 
-        cedula_input = input("Ingrese su usuario (Cédula) sin guiones y espacios: ").strip()
-        if not cedula_input:
-            print("⚠️ CAMPO VACÍO. Intente Nuevamente.")
-        else:
-            break 
-        
-    while True:
-        password_input = input("Ingrese su Contraseña: ").strip()
-        if not password_input:
-            print("⚠️ CAMPO VACÍO. Intente Nuevamente.")
-        else:
-            break 
+    cedula_input = validar_input("Ingrese su usuario (Cédula) sin guiones y espacios: ", 'cedula')
+    password_input = validar_input("Ingrese su Contraseña: ")
     
     usuarios_cargados = cargarUsuario() 
     
@@ -200,28 +147,28 @@ def InicioSesion():
 def opcion1(main_menu=True):
     while True:
         respuesta = input(">>> ").strip()
-
+        
         if not respuesta:
             print("⚠️ CAMPO VACÍO. Intente nuevamente.")
         elif not respuesta.isdigit():
             print("❌ Error. Datos no permitidos. Ingrese un número.")
         else:
             if main_menu: 
-                if respuesta == "1" or respuesta == "2": 
+                if respuesta in ["1", "2"]:
                     return respuesta
-                elif respuesta == "3": 
+                elif respuesta == "3":
                     return "salir_principal"
                 else:
                     print("🛑 Ingrese una opción válida (1, 2 o 3).")
             else: 
-                if respuesta == "1" or respuesta == "2":
+                if respuesta in ["1", "2"]:
                     return respuesta
                 elif respuesta == "3":
                     return "regresar"
                 elif respuesta == "4":
                     return "salir_principal"
                 else:
-                    print("🛑 Ingrese una opción válida (1, 2, 3 o 4).") 
+                    print("🛑 Ingrese una opción válida (1, 2, 3 o 4).")
             
 def opcion2():
     while True:
@@ -229,19 +176,18 @@ def opcion2():
         
         if not opcion:
             print("⚠️ CAMPO VACÍO. Intente Nuevamente.")         
-        elif not opcion.isalpha():
+        elif not opcion.isalpha() or opcion.lower() not in ["a", "b", "c"]:
             print("❌ ERROR. Opción no válida. Ingrese una letra (A, B o C).") 
-        elif opcion.lower() == "a":
-            comprarArticulo()
-            return "menu_continue"
-        elif opcion.lower() == "b":
-            verCredito()
-            return "menu_continue"
-        elif opcion.lower() == "c":
-            print("Ha salido de la sesión.") 
-            return "salir_sesion"
         else:
-            print("🛑 Ingrese una opción válida (A, B o C).") 
+            if opcion.lower() == "a":
+                comprarArticulo()
+                return "menu_continue"
+            elif opcion.lower() == "b":
+                verCredito()
+                return "menu_continue"
+            elif opcion.lower() == "c":
+                print("Ha salido de la sesión.") 
+                return "salir_sesion"
 
 def comprarArticulo():
     cls()
@@ -256,8 +202,7 @@ def verCredito():
           ------> Ver Estado de Crédito <------
           """)
     input("Presione Enter para continuar...")
-    
-    
+
 def main():
     while True:
         accionUsuario()
@@ -297,14 +242,16 @@ def main():
                     comprarArticulo() 
                     break 
                 
-                elif sub_accion == "3":
+                elif sub_accion == "regresar":
                     break 
                 
-                elif sub_accion == "4":
-                    print("¡Gracias por usar el programa! Saliendo...")
-                    return 
+                elif sub_accion == "salir_principal":
+                    print("¡Gracias por usar el programa! Saliendo...") 
+                    sys.exit()
 
         elif accion == "salir_principal": 
-            print("¡Gracias por usar el programa! Saliendo...")
-            return 
+            print("¡Gracias por usar el programa! Saliendo...") 
+            sys.exit()
+
 main()
+

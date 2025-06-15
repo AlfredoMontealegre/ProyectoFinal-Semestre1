@@ -10,7 +10,7 @@ class ClienteDao:
             print(cliente)
 
 
-class ProdcutDao:
+class ProductDao:
     def __init__(self):
         self.products = []
     
