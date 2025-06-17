@@ -2,10 +2,11 @@ import Dao.funciones as dao
 import Models.clases as mod
 import os
 import sys
+import json
+import bcrypt
 
 USER_FILENAME = 'usuarios.txt'
-BASE_PATH = "C:\\Users\\atorr\\OneDrive\\Documentos\\Archivo\\"
-USER_FILE_PATH = os.path.join(BASE_PATH, USER_FILENAME)
+USER_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), USER_FILENAME)
 
 productos = dao.ProductDao() 
 clientes = dao.ClienteDao()
@@ -16,11 +17,11 @@ def cls():
 def accionUsuario():
     cls()
     print("""
-                  -> GLOBAL TOOLS S.A <-
+                    -> GLOBAL TOOLS S.A <-
             
                     ===== Bienvenido =====
             
-                  ¿Estás registrado con nosotros?
+                ¿Estás registrado con nosotros?
             
                     [1] SI, INICIAR SESIÓN     
                     [2] NO, AÚN NO ESTOY REGISTRADO
@@ -46,7 +47,7 @@ def menu(usuario_nombre):
       ==================
 """) 
 
-def validar_input(mensaje, tipo='str'):
+def validar_input(mensaje, tipo='str', permitir_char_password=False):
     while True:
         entrada = input(mensaje).strip()
         if not entrada:
@@ -54,14 +55,19 @@ def validar_input(mensaje, tipo='str'):
             continue
 
         if tipo == 'str':
-            if not entrada.replace(" ", "").isalpha():
-                print("❌ ERROR. Ingrese un dato válido (solo letras).")
-                continue
+            if not permitir_char_password:
+                if not entrada.replace(" ", "").isalpha():
+                    print("❌ ERROR. Ingrese un dato válido (solo letras).")
+                    continue
         elif tipo == 'tel':
             if not entrada.isdigit() or len(entrada) != 8 or not entrada.startswith(("8", "7", "5", "2")):
                 print("🟡 El número ingresado no es válido. Debe tener 8 dígitos y comenzar con 2 (fijos), 5, 7 u 8 (móviles).")
                 continue
         elif tipo == 'cedula':
+            if not entrada.isalnum():
+                print("❌ ERROR. La cédula solo puede contener letras y números.")
+                continue
+            
             letras = [char for char in entrada if char.isalpha()]
             numeros = [char for char in entrada if char.isdigit()]
             if len(numeros) != 13 or len(letras) != 1 or (len(numeros) + len(letras)) != len(entrada):
@@ -69,31 +75,41 @@ def validar_input(mensaje, tipo='str'):
                 continue
         return entrada
 
-def GuardarUsuario(cliente_obj, password_str): 
+def GuardarUsuario(cliente_obj, password_str):
+    usuarios = cargarUsuario()
+    
+    password_hashed = bcrypt.hashpw(password_str.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    nuevo_usuario_data = {
+        "cedula": cliente_obj.id,
+        "nombre": cliente_obj.nombre,
+        "telefono": cliente_obj.telefono,
+        "password_hashed": password_hashed
+    }
+    
+    usuarios.append(nuevo_usuario_data)
+    
     try:
-        with open(USER_FILE_PATH, 'a', encoding='utf-8') as file:
-            file.write(f"{cliente_obj.id},{cliente_obj.nombre},{cliente_obj.telefono},{password_str}\n")
+        with open(USER_FILE_PATH, 'w', encoding='utf-8') as file:
+            json.dump(usuarios, file, indent=4)
+            print("Usuario Guardado correctamente.")
     except Exception as e:
         print(f"❌ ERROR al guardar el usuario: {e}")
 
 def cargarUsuario():
     usuarios = [] 
     try:
-        if os.path.exists(USER_FILE_PATH):
+        if os.path.exists(USER_FILE_PATH) and os.path.getsize(USER_FILE_PATH) > 0:
             with open(USER_FILE_PATH, 'r', encoding='utf-8') as file:
-                for line in file:
-                    parts = line.strip().split(',')
-                    parts = [p.strip() for p in parts] 
-                    if len(parts) == 4:
-                        cedula, nombre, telefono, password = parts
-                        usuarios.append({
-                            "cedula": cedula, 
-                            "nombre": nombre, 
-                            "telefono": telefono, 
-                            "password": password
-                        })
+                usuarios = json.load(file)
+        
+        else:
+            return []
+    except json.JSONDecodeError as e:
+        print(f"❌ ERROR: El archivo de usuarios está corrupto o mal formado (JSON). Iniciando con lista vacía. Detalle: {e}")
     except Exception as e:
         print(f"❌ ERROR al cargar los usuarios: {e}")
+        return []
     return usuarios
     
 def RegistroSesion():
@@ -113,7 +129,7 @@ def RegistroSesion():
             input("Presione Enter para continuar...")
             return None 
         
-    password = validar_input("Cree su contraseña: ")
+    password = validar_input("Cree su contraseña: ", permitir_char_password=True)
     nuevo_cliente = mod.Cliente(nombre_completo, cedula_id, telefono_num)
     
     clientes.add(nuevo_cliente) 
@@ -130,15 +146,20 @@ def InicioSesion():
           """) 
 
     cedula_input = validar_input("Ingrese su usuario (Cédula) sin guiones y espacios: ", 'cedula')
-    password_input = validar_input("Ingrese su Contraseña: ")
+    password_input = validar_input("Ingrese su Contraseña: ", permitir_char_password=True)
     
     usuarios_cargados = cargarUsuario() 
     
     for user_data in usuarios_cargados: 
-        if user_data["cedula"] == cedula_input and user_data["password"] == password_input:
-            print(f"¡Bienvenido {user_data['nombre']}!") 
-            input("Presione Enter para continuar...")
-            return mod.Cliente(user_data['nombre'], user_data['cedula'], user_data['telefono']) 
+        if user_data["cedula"] == cedula_input:
+            if bcrypt.checkpw(password_input.encode('utf-8'), user_data["password_hashed"].encode('utf-8')):
+                print(f"¡Bienvenido {user_data['nombre']}!") 
+                input("Presione Enter para continuar...")
+                return mod.Cliente(user_data['nombre'], user_data['cedula'], user_data['telefono']) 
+            else:
+                print("\n❌ Cédula o contraseña incorrecta. Intente de nuevo.")
+                input("Presione Enter para continuar...")
+                return None
         
     print("\n❌ Cédula o contraseña incorrecta. Intente de nuevo.")
     input("Presione Enter para continuar...")
