@@ -8,7 +8,6 @@ import bcrypt
 USER_FILENAME = 'usuarios.txt'
 USER_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), USER_FILENAME)
 
-productos = dao.ProductDao() 
 clientes = dao.ClienteDao()
 
 def cls():
@@ -165,7 +164,7 @@ def InicioSesion():
     input("Presione Enter para continuar...")
     return None 
 
-def opcion1(main_menu=True):
+def obtenerOpcionBienvenida(main_menu=True):
     while True:
         respuesta = input(">>> ").strip()
         
@@ -191,7 +190,7 @@ def opcion1(main_menu=True):
                 else:
                     print("🛑 Ingrese una opción válida (1, 2, 3 o 4).")
             
-def opcion2():
+def obtenerOpcionDeAccion():
     while True:
         opcion = input("--> ").strip()
         
@@ -227,7 +226,7 @@ def verCredito():
 def main():
     while True:
         accionUsuario()
-        accion = opcion1(main_menu=True) 
+        accion = obtenerOpcionBienvenida(main_menu=True) 
 
         if accion == "1": 
             usuario_logeado = InicioSesion()
@@ -235,7 +234,7 @@ def main():
                 while True: 
                     cls()
                     menu(usuario_logeado.nombre) 
-                    opcion_elegida = opcion2()
+                    opcion_elegida = obtenerOpcionDeAccion()
                     if opcion_elegida == "salir_sesion":
                         break 
             else:
@@ -253,7 +252,7 @@ def main():
                 [4] Salir del programa
 
                 """)
-                sub_accion = opcion1(main_menu=False) 
+                sub_accion = obtenerOpcionBienvenida(main_menu=False) 
 
                 if sub_accion == "1":
                     RegistroSesion() 
@@ -269,10 +268,15 @@ def main():
                 elif sub_accion == "salir_principal":
                     print("¡Gracias por usar el programa! Saliendo...") 
                     sys.exit()
+                else:
+                    continue
 
         elif accion == "salir_principal": 
             print("¡Gracias por usar el programa! Saliendo...") 
             sys.exit()
+        else:
+            continue
+                
 
 main()
 

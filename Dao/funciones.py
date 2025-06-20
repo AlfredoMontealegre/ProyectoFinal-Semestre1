@@ -9,6 +9,17 @@ class ClienteDao:
         for cliente in self.clientes:
             print(cliente)
 
+class AdminDao:
+    def __init__(self):
+        self.users = []
+    
+    def add(self, user):
+        self.users.append(user)
+    
+    def show(self):
+        for user in self.users:
+            print(user)
+           
 
 class ProductDao:
     def __init__(self):
