@@ -14,8 +14,7 @@ USER_FILENAME = 'usuarios.txt'
 USER_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), USER_FILENAME)
 
 users = dao.AdminDao()
-
-
+clientes = dao.ClienteDao()
 
 def cls():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -85,6 +84,164 @@ def menu_control_clientes():
         
         -------------------------------------------
           """)
+    
+def ver_clientes():
+    cls()
+    print("---- LISTA DE CLIENTES ---- ")
+    cliente_cargados = clientes.get_all_clientes()
+    if not clientes:
+        print("No hay clientes Registrados.")
+    
+    else:
+        for c in cliente_cargados:
+            print(c)
+    input("Presione ENTER para continuar...")
+
+def agregar_clientes():
+    cls()
+    print("---- AGREGAR CLIENTE ----")
+    nombre = validar_input("Nombre del Cliente: ", 'str')
+    cedula = validar_input("Cédula del Cliente: ", 'cedula')
+    telefono = validar_input("Teléfono del Cliente: ", 'tel')
+    contraseña = validar_input("Contraseña del Cliente: ", permitir_char_password=True)
+    
+    contraseña_hasheada = bcrypt.hashpw(contraseña.encode('utf-8'), bcrypt.gensalt()).decode()
+    
+    nuevo_cliente = {
+        "nombre": nombre,
+        "cedula": cedula,
+        "telefono": telefono,
+        "password_hashed": contraseña_hasheada
+    }
+    
+    clientes_actuales = cargar_usuario()
+    for c in clientes_actuales:
+        if c['cedula'] == cedula:
+            print(f"❌ ERROR: Ya existe un cliente con la cédula '{cedula}'.")
+            input("Presione ENTER para continuar...")
+            return
+
+    clientes_actuales.append(nuevo_cliente)
+    guardar_usuario(clientes_actuales)
+        
+    temp_cliente_obj = models.Cliente(nombre, cedula, telefono)
+    temp_cliente_obj.contraseña_hashed = contraseña_hasheada
+    clientes.add(temp_cliente_obj)
+    
+    print(f"✔️ Cliente '{nombre}' agregado con éxito.")
+    input("Presione ENTER para continuar...")    
+
+def editar_cliente():
+    cls()
+    print("---- EDITAR CLIENTE EXISTENTE ----")
+    usuario_a_editar = validar_input("Ingrese la cédula del usuario que desea editar: ", 'cedula')
+    cliente_actual = cargar_usuario()
+    cliente_encontrado = None
+    for i, c in enumerate(cliente_actual):
+        if c['cedula'] == usuario_a_editar:
+            cliente_encontrado = c
+            indice_cliente= i
+            break
+        
+    if not cliente_encontrado:
+        print(f"❌ No se encontró un cliente con la cédula '{usuario_a_editar}'")
+        input("Presiona ENTER para continuar...")
+        return
+    print(f"\n--- Cliente actual: {cliente_encontrado['nombre']} (Cédula: {cliente_encontrado['cedula']}) ---")
+    print(f"1. Nombre actual: {cliente_encontrado['nombre']}")
+    print(f"2. Teléfono actual: {cliente_encontrado['telefono']}")
+    print("--------------------------------------------------")
+    
+    print("\nDeje en blanco si no deseas cambiar el valor.")
+    
+    cambios_realizados = False
+    
+    nuevo_nombre = validar_input(f"Nuevo Nombre {cliente_encontrado['nombre']}: ", 'str')
+    if nuevo_nombre:
+        cliente_encontrado['nombre'] = nuevo_nombre
+        cambios_realizados = True
+    
+    nuevo_telefono = validar_input(f"Nuevo Teléfono {cliente_encontrado['telefono']}: ", 'tel')
+    if nuevo_telefono:
+        cliente_encontrado['telefono'] = nuevo_telefono
+        cambios_realizados = True
+    
+    nueva_contraseña = validar_input(f"Nueva Contraseña: ", permitir_char_password=True)
+    if nueva_contraseña:
+        nueva_contraseña_hasheada = bcrypt.hashpw(nueva_contraseña.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        cliente_encontrado['contraseña_hash'] = nueva_contraseña_hasheada
+        print("✔️ Contraseña del cliente actualizada.")
+        cambios_realizados = True
+
+    if cambios_realizados:
+        cliente_actual[indice_cliente] = cliente_encontrado
+        guardar_usuario(cliente_actual)
+        
+        cliente_en_dao = None 
+        for c in clientes.clientes:
+            if c.cedula == usuario_a_editar:
+                cliente_en_dao = c
+                break
+        
+        if cliente_en_dao:
+            cliente_en_dao.nombre = cliente_encontrado['nombre']
+            cliente_en_dao.telefono = cliente_encontrado['telefono']
+            print("✔️ Información del cliente actualizada en memoria.")
+        
+        else:
+            print("⚠️ Cliente no encontrado en la lista en memoria del DAO. Reinicia para sincronizar.")
+
+        print(f"✔️ Cliente con cédula '{usuario_a_editar}' actualizado con éxito.")
+    
+    else:
+        print("No se realizaron cambios.")
+    
+    input("Presione ENTER para continuar...")
+
+def eliminar_cliente():
+    cls()
+    print("---- ELIMINAR CLIENTE ----")
+    usuario_a_eliminar = validar_input("Ingrese la cédula del cliente que desea eliminar: ", 'cedula')
+    clientes_actuales = cargar_usuario()
+    clientes_restantes = [c for c in clientes_actuales if c['cedula']]
+    
+    if len(clientes_restantes) < len(clientes_actuales):
+        guardar_usuario(clientes_restantes)
+        clientes.delete_cliente(usuario_a_eliminar)
+        print(f"✔️ Cliente con cédula '{usuario_a_eliminar}' eliminado con éxito.")
+    
+    else:
+        print(f"❌ ERROR: Cliente con cédula '{usuario_a_eliminar}' no encontrado.")
+    input("Presione ENTER para continuar...")
+
+def ver_clientes():
+    cls()
+    print("---- LISTA DE CLIENTES ----")
+    clientes_cargados = clientes.get_all_clientes()
+    if not clientes_cargados:
+        print("No hay clientes Registrados.")
+    else:
+        for c in clientes_cargados:
+            print(c)
+    
+    input("Presione ENTER para continuar...")
+
+def buscar_cliente():
+    cls()
+    print("---- BUSCAR CLIENTE ----")
+    usuario_a_buscar = input("Ingrese Cédula o parte del Nombre del Cliente a buscar: ").strip()
+    clientes_encontrados = clientes.find_cliente(usuario_a_buscar)
+    
+    if clientes_encontrados:
+        print("---- CLIENTES ENCONTRADOS ----")
+        for cliente in clientes_encontrados:
+            print(cliente)
+    
+    else:
+        print(f"❌ No se encontraron clientes que coincidan con '{usuario_a_buscar}'.")
+    
+    input("Presione ENTER para continuar...")
+    
 
 def guardar_usuario(user_obj, password_str):
     usuarios = cargar_usuario()
@@ -319,9 +476,25 @@ def main():
                         menu_inventario()
                         input("Presiona ENTER para continuar...")
                     elif opcion_elegida == '2':
-                        cls()
-                        menu_control_clientes()
-                        input("Presiona ENTER para continuar...")
+                        while True:
+                            cls()
+                            menu_control_clientes()
+                            opc = obtener_opcion_submenu(tipo_menu='menu_control_clientes')
+                            if opc == '1':
+                                ver_clientes()
+                            elif opc == '2':
+                                editar_cliente()
+                            elif opc == '3':
+                                eliminar_cliente()
+                            elif opc == '4':
+                                agregar_clientes()
+                            elif opc == '5':
+                                buscar_cliente()
+                            elif opc == 'regresar':
+                                break
+                            elif opc == 'salir_principal':
+                                salir_programa()
+                            
                     elif opcion_elegida == 'regresar':
                         break
                     elif opcion_elegida == 'salir_principal':
