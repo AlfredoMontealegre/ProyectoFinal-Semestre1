@@ -49,5 +49,41 @@ def pedir_seleccion():
 
 mostrar_menu()
 opcion = pedir_seleccion()
-producto_seleccionado = productos[opcion - 1]
-print(f"Has seleccionado: {producto_seleccionado} C${precios[opcion - 1]}")
+item = (productos[opcion - 1])
+precio_item = (precios[opcion - 1])
+print(f"Has seleccionado: {item} C${precio_item}")
+
+cant = int(input(f"Ingrese la cantidad de ({item}) que desea llevar: "))
+converter = int(precio_item)
+total = (cant * converter)
+
+print(f"Por la cantidad de {cant} de ({item}) el precio total es: C${total}.")
+
+# Compra, detalles y Negación o Aceptación
+
+def compra():
+    while True:
+        resp = input("----> ¿Deseas comprarlo/s? (Y/N): ").lower()
+
+        if resp == "y":
+            print("===== == = Compra Exitosa = == =====")
+
+        if resp == "n":
+         print("Has cancelado la compra.")
+         limpiar_pantalla()
+         mostrar_menu()
+        
+
+        if not resp:
+            print("❌ [Error] El campo está vacío. Por favor, Y o N.")
+            continue
+
+        if resp.isdigit():
+            print("❌ [Error] No se aceptan números, solo Y/N")
+            continue
+
+        
+
+        return resp
+    
+compra()
