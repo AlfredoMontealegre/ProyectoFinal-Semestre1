@@ -82,7 +82,9 @@ def compra():
             print("❌ [Error] No se aceptan números, solo Y/N")
             continue
 
-        
+            # en caso de concecuencias :P
+        if resp == "cancel" or "fin":
+            break
 
         return resp
     
