@@ -1,23 +1,24 @@
 import os
 
-# Prototipo de Venta para los inventarios
+def tienda():
+    # Prototipo de Venta para los inventarios
 
-productos = ['Adaptador', 'Atornillador', 'Alicate', 'Ambientador', 'Clavo', 'Conector LED', 'Cinta Transparente',
-             'Escalera', 'Extension', 'Foco Led', 'Interruptor', 'Lima', 'Mangera', 'Motosierra',
-             'Navaja Multiusos', 'Regadera', 'Taladro', 'Yeso', 'Tijeras', 'Ventilador']
+    productos = ['Adaptador', 'Atornillador', 'Alicate', 'Ambientador', 'Clavo', 'Conector LED', 'Cinta Transparente',
+                 'Escalera', 'Extension', 'Foco Led', 'Interruptor', 'Lima', 'Mangera', 'Motosierra',
+                 'Navaja Multiusos', 'Regadera', 'Taladro', 'Yeso', 'Tijeras', 'Ventilador']
 
-precios = [350, 1100, 350, 180, 12.50, 48.50, 50, 3100, 170, 170, 180, 125, 300, 3400, 1300, 200, 1500, 1200, 500, 470]
+    precios = [350, 1100, 350, 180, 12.50, 48.50, 50, 3100, 170, 170, 180, 125, 300, 3400, 1300, 200, 1500, 1200, 500, 470]
 
-# 0 - 19 (Valores) | 20 Productos
-# Los precios se alinearan de acuerdo a los productos.
+    # 0 - 19 (Valores) | 20 Productos
+    # Los precios se alinearán de acuerdo a los productos.
 
-# Un comando para limpiar la pantalla, solo necesitas poner "limpiar_pantalla() en algo y lo hace automaticamente"
-def limpiar_pantalla():
-    os.system('cls' if os.name == 'nt' else 'clear')
+    # Un comando para limpiar la pantalla, solo necesitas poner "limpiar_pantalla()" en algo y lo hace automáticamente
+    def limpiar_pantalla():
+        os.system('cls' if os.name == 'nt' else 'clear')
 
-def mostrar_menu():
-    limpiar_pantalla()
-    print("""====> Bienvenido a la Tienda, que quisiera comprar?
+    def mostrar_menu():
+        limpiar_pantalla()
+        print("""====> Bienvenido a la Tienda, que quisiera comprar?
       (Presiona el numero del producto para elegirlo)
 
       1. Adaptador      6. Conector LED         11. Interruptor         16. Regadera 
@@ -25,67 +26,70 @@ def mostrar_menu():
       3. Alicate        8. Escalera             13. Mangera             18. Yeso
       4. Ambientador    9. Extension            14. Motosierra          19. Tijeras
       5. Clavo         10. Foco LED             15. Navaja Multiusos    20. Ventilador 
-           """)
+               """)
 
-def pedir_seleccion():
-    while True:
-        seleccion = input("---> Selecciona el número del producto que deseas comprar: ").strip()
+    def pedir_seleccion():
+        while True:
+            seleccion = input("---> Selecciona el número del producto que deseas comprar: ").strip()
 
-        if not seleccion:
-            print("❌ [Error] El campo está vacío. Por favor, ingresa un número del 1 al 20.")
-            continue
+            if not seleccion:
+                print("❌ [Error] El campo está vacío. Por favor, ingresa un número del 1 al 20.")
+                continue
 
-        if not seleccion.isdigit():
-            print("❌ [Error] Solo se aceptan números enteros positivos del 1 al 20.")
-            continue
+            if not seleccion.isdigit():
+                print("❌ [Error] Solo se aceptan números enteros positivos del 1 al 20.")
+                continue
 
-        seleccion = int(seleccion)
+            seleccion = int(seleccion)
 
-        if seleccion < 1 or seleccion > len(productos):
-            print("❌ [Error] El número debe estar entre 1 y 20.")
-            continue
+            if seleccion < 1 or seleccion > len(productos):
+                print("❌ [Error] El número debe estar entre 1 y 20.")
+                continue
 
-        return seleccion
+            return seleccion
 
-mostrar_menu()
-opcion = pedir_seleccion()
-item = (productos[opcion - 1])
-precio_item = (precios[opcion - 1])
-print(f"Has seleccionado: {item} C${precio_item}")
+    mostrar_menu()
+    opcion = pedir_seleccion()
+    item = (productos[opcion - 1])
+    precio_item = (precios[opcion - 1])
+    print(f"Has seleccionado: {item} C${precio_item}")
 
-cant = int(input(f"Ingrese la cantidad de ({item}) que desea llevar: "))
-converter = int(precio_item)
-total = (cant * converter)
+    cant = int(input(f"Ingrese la cantidad de ({item}) que desea llevar: "))
+    converter = int(precio_item)
+    total = (cant * converter)
 
-print(f"Por la cantidad de {cant} de ({item}) el precio total es: C${total}.")
+    print(f"Por la cantidad de {cant} de ({item}) el precio total es: C${total}.")
 
-# Compra, detalles y Negación o Aceptación
+    # Compra, detalles y Negación o Aceptación
 
-def compra():
-    while True:
-        resp = input("----> ¿Deseas comprarlo/s? (Y/N): ").lower()
+    def compra():
+        while True:
+            resp = input("----> ¿Deseas comprarlo/s? (Y/N): ").lower()
 
-        if resp == "y":
-            print("===== == = Compra Exitosa = == =====")
+            if resp == "y":
+                print("===== == = Compra Exitosa = == =====")
 
-        if resp == "n":
-         print("Has cancelado la compra.")
-         limpiar_pantalla()
-         mostrar_menu()
-        
+            if resp == "n":
+                print("Has cancelado la compra.")
+                limpiar_pantalla()
+                mostrar_menu()
+                pedir_seleccion()
 
-        if not resp:
-            print("❌ [Error] El campo está vacío. Por favor, Y o N.")
-            continue
+            if not resp:
+                print("❌ [Error] El campo está vacío. Por favor, Y o N.")
+                continue
 
-        if resp.isdigit():
-            print("❌ [Error] No se aceptan números, solo Y/N")
-            continue
+            if resp.isdigit():
+                print("❌ [Error] No se aceptan números, solo Y/N")
+                continue
 
             # en caso de concecuencias :P
-        if resp == "cancel" or "fin":
-            break
+            if resp == "cancel" or "fin":
+                break
 
-        return resp
-    
-compra()
+            return resp
+
+    compra()
+
+# Llamar a la función
+tienda()
