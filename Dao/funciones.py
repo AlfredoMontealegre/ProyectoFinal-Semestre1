@@ -5,6 +5,7 @@
 
 import os
 import pickle
+import random # Importamos random para generar números aleatorios únicos
 import Models.clases as models # Importa las clases de modelos (Cliente, Admin, Product, Factura)
 
 # Configuración de las rutas de los archivos de datos
@@ -88,6 +89,73 @@ def _load_data(filepath: str) -> list:
         return []
 
 # --- Funciones DAO específicas usando las genéricas para cada modelo ---
+
+def generar_codigo_trabajador(nombre_completo: str, existing_admins: list[models.Admin]) -> str:
+    """
+    Genera un código de trabajador único basado en la inicial de los dos nombres
+    y las iniciales de los dos apellidos, más dos números aleatorios.
+    Formato: I_N1 + I_N2 + I_A1 + I_A2 + 2NumerosRandom.
+    Si alguna parte (ej. segundo nombre) no existe, se usa 'x' como placeholder.
+    Asegura que el código generado sea único en el sistema de administradores.
+    
+    Args:
+        nombre_completo (str): El nombre completo del trabajador (ej. "Juan Jose Perez Lopez").
+        existing_admins (list[models.Admin]): Lista de administradores existentes para verificar unicidad.
+        
+    Returns:
+        str: El código de trabajador único generado.
+    """
+    partes = nombre_completo.split() # Divide el nombre completo en una lista de palabras
+    
+    iniciales = []
+    
+    # Inicial del Primer Nombre
+    iniciales.append(partes[0][0].lower() if len(partes) > 0 else 'x')
+
+    # Inicial del Segundo Nombre
+    # Se considera la segunda palabra como segundo nombre si no es una preposición común
+    # y hay suficientes partes en el nombre completo.
+    if len(partes) > 1 and partes[1].lower() not in ['de', 'del', 'la', 'las', 'los', 'y']:
+        iniciales.append(partes[1][0].lower())
+    else:
+        iniciales.append('x') # Placeholder si no hay segundo nombre o es una preposición
+
+    # Inicial del Primer Apellido
+    # Se asume que el primer apellido es la penúltima palabra si hay al menos dos palabras.
+    if len(partes) >= 2:
+        # Se busca el primer apellido. Si el nombre tiene más de 2 palabras (ej: Juan de la Cruz Lopez),
+        # se asume que el apellido es la penúltima palabra.
+        if len(partes) > 2 and partes[-2].lower() in ['de', 'del', 'la', 'las', 'los', 'y']:
+            # Si la penúltima palabra es una preposición, se busca el antepenúltimo
+            if len(partes) > 3:
+                iniciales.append(partes[-3][0].lower())
+            else:
+                iniciales.append('x')
+        else:
+            iniciales.append(partes[-2][0].lower())
+    else:
+        iniciales.append('x') # Placeholder si no hay suficientes partes para un apellido
+
+    # Inicial del Segundo Apellido
+    # Se asume que el segundo apellido es la última palabra si hay al menos tres palabras.
+    if len(partes) >= 3:
+        iniciales.append(partes[-1][0].lower())
+    else:
+        iniciales.append('x') # Placeholder si no hay suficientes partes para un segundo apellido
+
+    # Une las iniciales para formar la base del código. Se toman las primeras 4 iniciales.
+    codigo_base = "".join(iniciales[:4])
+
+    # Asegurar unicidad añadiendo dos números aleatorios
+    while True:
+        numeros_random = str(random.randint(0, 99)).zfill(2) # Genera un número aleatorio de 00 a 99
+        codigo_generado = f"{codigo_base}{numeros_random}" # Concatena las iniciales con los números
+        
+        # Verifica si el código generado ya existe en la lista de administradores
+        if not any(admin.codigo == codigo_generado for admin in existing_admins):
+            return codigo_generado # Si es único, lo retorna
+        # Si no es único, el bucle continúa para generar otro código con nuevos números aleatorios
+
 
 def guardar_admin_users(admin_users: list[models.Admin]):
     """

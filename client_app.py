@@ -48,36 +48,36 @@ def client_validar_input(mensaje: str, tipo: str = 'str', permitir_char_password
         else:
             entrada = input(mensaje).strip() # Lee la entrada y elimina espacios al inicio/final
             if tipo == 'password' and not pwinput:
-                print("⚠️  Advertencia: pwinput no está instalado. La contraseña será visible.")
+                print("⚠️ Advertencia: pwinput no está instalado. La contraseña será visible.")
 
         if not entrada:
-            print("⚠️  CAMPO VACÍO. Intente Nuevamente.")
+            print("⚠️ CAMPO VACÍO. Intente Nuevamente.")
             continue
 
         if tipo == 'str':
             if not permitir_char_password:
                 # Si no es una contraseña, valida que contenga solo letras y espacios
                 if not entrada.replace(" ", "").isalpha():
-                    print("❌ ERROR: Ingrese un dato válido (solo letras).")
+                    print("❌ ERROR. Ingrese un dato válido (solo letras).")
                     continue
             return entrada.title() # Retorna la cadena con la primera letra de cada palabra en mayúscula
         elif tipo == 'tel':
             # Formato esperado para teléfono: 8 dígitos numéricos, iniciando con 2, 5, 7 o 8
             if not entrada.isdigit() or len(entrada) != 8 or not entrada.startswith(("8", "7", "5", "2")):
-                print("🟡 ERROR: El número ingresado no es válido. Debe tener 8 dígitos y comenzar con 2 (fijos), 5, 7 u 8 (móviles).")
+                print("🟡 El número ingresado no es válido. Debe tener 8 dígitos y comenzar con 2 (fijos), 5, 7 u 8 (móviles).")
                 continue
             return entrada
         elif tipo == 'cedula':
             # Formato esperado para cédula: 13 números seguidos de 1 letra (ej: 0012345678901A)
             if not len(entrada) == 14:
-                print("❌ ERROR: La cédula debe tener exactamente 14 caracteres (13 números y 1 letra al final).")
+                print("❌ ERROR. La cédula debe tener exactamente 14 caracteres (13 números y 1 letra al final).")
                 continue
             
             numeros_parte = entrada[:-1] # Los primeros 13 caracteres (números)
             letra_parte = entrada[-1]    # El último caracter (letra)
             
             if not numeros_parte.isdigit() or not letra_parte.isalpha():
-                print("❌ ERROR: La cédula debe tener 13 números seguidos de 1 letra (ej: 0012345678901A).")
+                print("❌ ERROR. La cédula debe tener 13 números seguidos de 1 letra (ej: 0012345678901A).")
                 continue
             
             return numeros_parte + letra_parte.upper() # Asegura que la letra final esté en mayúscula
@@ -171,7 +171,7 @@ def register_client_session():
             input("Presione Enter para continuar...")
             return None # Retorna None para indicar que el registro falló
         
-    password = client_validar_input("Cree su contraseña: ", tipo='password')
+    password = client_validar_input("Cree su contraseña: ", permitir_char_password=True)
     # Hashea la contraseña usando bcrypt antes de crear el objeto Cliente
     password_hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
@@ -179,7 +179,7 @@ def register_client_session():
     nuevo_cliente = models.Cliente(nombre_completo, cedula_id, telefono_num, password_hashed)
     clientes_dao.add(nuevo_cliente) # Usa el DAO para agregar y persistir el nuevo cliente
     
-    print("\n✅ ¡¡Registro Exitoso!! Ahora puedes iniciar sesión.")
+    print("\n¡¡Registro Exitoso!! Ahora puedes iniciar sesión.")
     input("Presione enter para continuar...")
     return nuevo_cliente # Retorna el objeto Cliente registrado
 
@@ -194,7 +194,7 @@ def login_client_session():
           """) 
 
     cedula_input = client_validar_input("Ingrese su usuario (Cédula, 13 números + 1 letra) sin guiones y espacios: ", 'cedula')
-    password_input = client_validar_input("Ingrese su Contraseña: ", tipo='password')
+    password_input = client_validar_input("Ingrese su Contraseña: ", permitir_char_password=True)
     
     usuarios_cargados = clientes_dao.get_all_clientes() # Carga todos los clientes para verificar
 
@@ -209,7 +209,7 @@ def login_client_session():
         # Si el cliente fue encontrado, verifica su contraseña
         # Comprueba si tiene una contraseña hasheada y si coincide con la entrada
         if cliente_encontrado.password_hashed and bcrypt.checkpw(password_input.encode('utf-8'), cliente_encontrado.password_hashed.encode('utf-8')):
-            print(f"✅ ¡Bienvenido {cliente_encontrado.nombre}!") 
+            print(f"¡Bienvenido {cliente_encontrado.nombre}!") 
             input("Presione Enter para continuar...")
             return cliente_encontrado # Retorna el objeto Cliente logeado
         else:
@@ -240,7 +240,7 @@ def buy_item(current_client_cedula: str = "INVITADO"):
     
     productos_disponibles = productos_dao.get_all_products()
     if not productos_disponibles:
-        print("ℹ️  No hay productos disponibles en este momento.")
+        print("[INFO] No hay productos disponibles en este momento.")
         input("Presione Enter para continuar...")
         return
 
@@ -290,7 +290,7 @@ def buy_item(current_client_cedula: str = "INVITADO"):
         # Es mejor actualizar al final de la compra para evitar escrituras excesivas
 
     if not carrito:
-        print("ℹ️  No se seleccionaron productos. Compra cancelada.")
+        print("[INFO] No se seleccionaron productos. Compra cancelada.")
         input("Presione Enter para continuar...")
         return
 
@@ -368,13 +368,13 @@ def buy_item(current_client_cedula: str = "INVITADO"):
         productos_dao.update_products_list()
         
         print("\n" + "="*40)
-        print("          ✅ ¡COMPRA REALIZADA CON ÉXITO!")
+        print("          ¡COMPRA REALIZADA CON ÉXITO!")
         print("="*40)
         print(nueva_factura) # Muestra la factura generada
         print("="*40)
         input("Presione Enter para continuar...")
     else:
-        print("ℹ️ Compra cancelada.")
+        print("[INFO] Compra cancelada.")
         input("Presione Enter para continuar...")
 
 def view_credit_status(client_cedula: str):
@@ -393,7 +393,7 @@ def view_credit_status(client_cedula: str):
     facturas_cliente = facturas_dao.find_facturas_by_client_cedula(client_cedula)
     
     if not facturas_cliente:
-        print("ℹ️  No tienes facturas registradas.")
+        print("[INFO] No tienes facturas registradas.")
     else:
         print("\n--- Tus Facturas ---")
         for factura in facturas_cliente:
@@ -468,12 +468,12 @@ def run_client_app():
                         view_credit_status(current_client_logged.cedula) # Llama a la función de ver crédito con la cédula del cliente
                         cls() # Limpia después de la acción
                     elif opcion_accion == "c":
-                        print("🚪 Ha salido de la sesión.") 
+                        print("Ha salido de la sesión.") 
                         input("Presione ENTER para continuar...")
                         current_client_logged = None # Reinicia el cliente logeado
                         break # Sale del bucle de acciones, volviendo al menú de bienvenida
                     else:
-                        print("❌ ERROR: Opción no válida. Ingrese una letra (A, B o C).")
+                        print("❌ ERROR. Opción no válida. Ingrese una letra (A, B o C).")
                         input("Presione ENTER para continuar...")
                         cls() # Limpia después de un error
             else:
@@ -499,16 +499,16 @@ def run_client_app():
                     cls() # Limpia después de la acción
                     break # Rompe el sub-bucle, volviendo al menú de bienvenida para que pueda logearse
                 elif sub_accion == "2": # Comprar como invitado
-                    print("\nℹ️ Comprando como invitado (solo pago al contado).")
+                    print("\nComprando como invitado (solo pago al contado).")
                     input("Presiona Enter para ir a los productos...")
                     buy_item("INVITADO") # Llama a la función de comprar en modo invitado
                     cls() # Limpia después de la acción
                     break # Sale del sub-bucle, volviendo al menú de bienvenida
                 elif sub_accion == "3": # Regresar al menú principal
-                    print("⬅️  Volviendo al menú principal de clientes...")
+                    print("[INFO] Volviendo al menú principal de clientes...")
                     break # Rompe el sub-bucle, volviendo al menú de bienvenida
                 elif sub_accion == "4": # Salir del programa
-                    print("👋  ¡Gracias por usar el programa! Saliendo...") 
+                    print("¡Gracias por usar el programa! Saliendo...") 
                     sys.exit() # Sale del programa
                 else:
                     print("🛑 Ingrese una opción válida (1-4).")
@@ -516,7 +516,7 @@ def run_client_app():
                     cls() # Limpia después de un error
         
         elif accion_elegida == "3": # Opción: Salir del programa desde el menú de bienvenida
-            print("👋 ¡Gracias por usar el programa! Saliendo...") 
+            print("¡Gracias por usar el programa! Saliendo...") 
             sys.exit() # Sale del programa
         
         else:

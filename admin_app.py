@@ -4,9 +4,10 @@
 
 import os
 import sys
-import random # Importamos random para generar números aleatorios
 
-import Dao.funciones as dao # Importa las funciones DAO para interactuar con la persistencia
+# Importa las funciones DAO para interactuar con la persistencia
+# ¡Ahora importamos generar_codigo_trabajador de Dao.funciones!
+import Dao.funciones as dao 
 import Models.clases as models # Importa las clases de modelos (Cliente, Admin, Product)
 import auth # Importa el módulo de autenticación para administradores (login, hash de contraseña)
 
@@ -41,7 +42,7 @@ def admin_validar_input(mensaje: str, tipo: str = 'str', permitir_char_password:
         entrada = input(mensaje).strip() # Lee la entrada y elimina espacios al inicio/final
            
         if not entrada:
-            print("⚠️ CAMPO VACÍO. Intente Nuevamente.")
+            print("⚠️ CAMPO VACÍE. Intente Nuevamente.")
             continue
         
         if tipo == 'str':
@@ -57,14 +58,14 @@ def admin_validar_input(mensaje: str, tipo: str = 'str', permitir_char_password:
             # pero se mantiene por si hay otras partes del código que lo necesiten.
             # El formato ahora se generará automáticamente.
             if not entrada.isalnum():
-                print("🟡 ERROR: El código de trabajador no es válido (ej. atorresp07). Solo debe contener letras y números.")
+                print("🟡 El código de trabajador no es válido (ej. atorresp07). Solo debe contener letras y números.")
                 continue
             
             letras = ''.join(filter(str.isalpha, entrada))
             numeros = ''.join(filter(str.isdigit, entrada))
 
             if len(letras) != 8 or len(numeros) != 2 or (len(letras) + len(numeros)) != len(entrada):
-                print("❌ ERROR: El formato del código de trabajador es incorrecto (debe tener 8 letras seguidas de 2 números, ej: atorresp07).")
+                print("❌ ERROR. El formato del código de trabajador es incorrecto (debe tener 8 letras seguidas de 2 números, ej: atorresp07).")
                 continue
             return entrada 
         
@@ -149,71 +150,6 @@ def display_clients_menu():
 
 # --- Funciones de Operación de Datos (Integradas con DAOs) ---
 
-def generar_codigo_trabajador(nombre_completo: str) -> str:
-    """
-    Genera un código de trabajador único basado en la inicial de los dos nombres
-    y las iniciales de los dos apellidos, más dos números aleatorios.
-    Formato: I_N1 + I_N2 + I_A1 + I_A2 + 2NumerosRandom.
-    Si alguna parte (ej. segundo nombre) no existe, se usa 'x' como placeholder.
-    Asegura que el código generado sea único en el sistema de administradores.
-    
-    Args:
-        nombre_completo (str): El nombre completo del trabajador (ej. "Juan Jose Perez Lopez").
-        
-    Returns:
-        str: El código de trabajador único generado.
-    """
-    partes = nombre_completo.split() # Divide el nombre completo en una lista de palabras
-    
-    iniciales = []
-    
-    # Inicial del Primer Nombre
-    iniciales.append(partes[0][0].lower() if len(partes) > 0 else 'x')
-
-    # Inicial del Segundo Nombre
-    # Se considera la segunda palabra como segundo nombre si no es una preposición común
-    # y hay suficientes partes en el nombre completo.
-    if len(partes) > 1 and partes[1].lower() not in ['de', 'del', 'la', 'las', 'los', 'y']:
-        iniciales.append(partes[1][0].lower())
-    else:
-        iniciales.append('x') # Placeholder si no hay segundo nombre o es una preposición
-
-    # Inicial del Primer Apellido
-    # Se asume que el primer apellido es la penúltima palabra si hay al menos dos palabras.
-    if len(partes) >= 2:
-        # Se busca el primer apellido. Si el nombre tiene más de 2 palabras (ej: Juan de la Cruz Lopez),
-        # se asume que el apellido es la penúltima palabra.
-        if len(partes) > 2 and partes[-2].lower() in ['de', 'del', 'la', 'las', 'los', 'y']:
-            # Si la penúltima palabra es una preposición, se busca el antepenúltimo
-            if len(partes) > 3:
-                iniciales.append(partes[-3][0].lower())
-            else:
-                iniciales.append('x')
-        else:
-            iniciales.append(partes[-2][0].lower())
-    else:
-        iniciales.append('x') # Placeholder si no hay suficientes partes para un apellido
-
-    # Inicial del Segundo Apellido
-    # Se asume que el segundo apellido es la última palabra si hay al menos tres palabras.
-    if len(partes) >= 3:
-        iniciales.append(partes[-1][0].lower())
-    else:
-        iniciales.append('x') # Placeholder si no hay suficientes partes para un segundo apellido
-
-    # Une las iniciales para formar la base del código. Se toman las primeras 4 iniciales.
-    codigo_base = "".join(iniciales[:4])
-
-    # Asegurar unicidad añadiendo dos números aleatorios
-    while True:
-        numeros_random = str(random.randint(0, 99)).zfill(2) # Genera un número aleatorio de 00 a 99
-        codigo_generado = f"{codigo_base}{numeros_random}" # Concatena las iniciales con los números
-        
-        # Verifica si el código generado ya existe en la lista de administradores
-        if not any(admin.codigo == codigo_generado for admin in users_dao.get_all_admin_users()):
-            return codigo_generado # Si es único, lo retorna
-        # Si no es único, el bucle continúa para generar otro código con nuevos números aleatorios
-
 def register_admin_user_via_menu():
     """
     Permite al administrador registrar un nuevo usuario administrador en el sistema.
@@ -225,11 +161,12 @@ def register_admin_user_via_menu():
           """)
     
     # Se pide el nombre completo y el programa genera el código
-    nombre_completo = admin_validar_input("Nombre y Apellidos: ", 'str')
+    nombre_completo = admin_validar_input("Nombres y Apellidos: ", 'str')
     
     # Generar automáticamente el código de trabajador
-    codigo_generado = generar_codigo_trabajador(nombre_completo)
-    print(f"✔️ Código de trabajador generado: {codigo_generado}")
+    # Usamos la función del módulo Dao
+    codigo_generado = dao.generar_codigo_trabajador(nombre_completo, users_dao.get_all_admin_users())
+    print(f"✔️ Código de trabajador generado: {codigo_generado}") # Muestra el código generado
 
     telefono = admin_validar_input("Ingrese su número telefónico (8 dígitos, inicia con 2,5,7,8): ", 'tel')
     cedula = admin_validar_input("Digite su número de Cédula (13 números + 1 letra): ", 'cedula')
@@ -248,7 +185,7 @@ def register_admin_user_via_menu():
     # El método add del AdminDao se encarga de las validaciones de duplicados (cedula) y la persistencia
     # El código ya está validado como único por generar_codigo_trabajador
     if users_dao.add(nuevo_trabajador):
-        print(f"\n✅ ¡¡Registro Exitoso. Su nombre de usuario (código) es: {codigo_generado}!!")
+        print(f"\n¡¡Registro Existoso. Su nombre de usuario (código) es: {codigo_generado}!!")
     else:
         print("\n❌ Error al registrar trabajador. Verifique los datos o si ya existe un usuario con esa cédula.")
     
@@ -287,7 +224,7 @@ def add_client_manual():
     nuevo_cliente = models.Cliente(nombre, cedula, telefono)
     clientes_dao.add(nuevo_cliente) # El DAO se encarga de agregar y guardar
     
-    print(f"✅ Cliente '{nombre}' agregado con éxito.")
+    print(f"✔️ Cliente '{nombre}' agregado con éxito.")
     input("Presione ENTER para continuar...")
 
 def edit_client():
@@ -334,7 +271,7 @@ def edit_client():
     nuevo_telefono = input(f"Nuevo Teléfono ({cliente_encontrado.telefono}): ").strip()
     if nuevo_telefono:
         if not (nuevo_telefono.isdigit() and len(nuevo_telefono) == 8 and nuevo_telefono.startswith(('8','7', '5', '2'))):
-            print("🟡 ERROR: El número ingresado no es válido. Debe tener 8 dígitos y comenzar con 2, 5, 7 u 8. No se actualizó el teléfono.")
+            print("🟡 El número ingresado no es válido. Debe tener 8 dígitos y comenzar con 2, 5, 7 u 8. No se actualizó el teléfono.")
         else:
             cliente_encontrado.telefono = nuevo_telefono
             cambios_realizados = True
@@ -350,7 +287,7 @@ def edit_client():
 
     if cambios_realizados:
         clientes_dao.update_clientes_list() # Persiste los cambios en el archivo
-        print(f"✅ Cliente con cédula '{cedula_a_editar}' actualizado con éxito y guardado.")
+        print(f"✔️ Cliente con cédula '{cedula_a_editar}' actualizado con éxito y guardado.")
     else:
         print("No se realizaron cambios.")
     
@@ -366,7 +303,7 @@ def delete_client():
     
     # El método delete_cliente del DAO ya imprime mensajes de éxito/error.
     if clientes_dao.delete_cliente(cedula_a_eliminar):
-        print(f"✅ Cliente con cédula '{cedula_a_eliminar}' eliminado con éxito.")
+        print(f"✔️ Cliente con cédula '{cedula_a_eliminar}' eliminado con éxito.")
     else:
         print(f"❌ ERROR: Cliente con cédula '{cedula_a_eliminar}' no encontrado.")
     input("Presione ENTER para continuar...")
@@ -443,7 +380,7 @@ def add_product():
         
     nuevo_producto = models.Product(nombre_producto, precio, stock)
     productos_dao.add(nuevo_producto) # El DAO se encarga de agregar y guardar
-    print(f"✅ Producto '{nombre_producto}' agregado con éxito.") # Confirmación adicional
+    print(f"✔️ Producto '{nombre_producto}' agregado con éxito.") # Confirmación adicional
     input("Presione ENTER para continuar...")
 
 def edit_product():
@@ -477,9 +414,9 @@ def edit_product():
                     producto_seleccionado = productos_encontrados[seleccion - 1]
                     break
                 else:
-                    print("🛑 Opción inválida. Intente de nuevo.")
+                    print("Opción inválida. Intente de nuevo.")
             except ValueError:
-                print("❌ Entrada inválida. Ingrese un número.")
+                print("Entrada inválida. Ingrese un número.")
     else:
         producto_seleccionado = productos_encontrados[0] # Si solo hay uno, lo selecciona automáticamente
 
@@ -519,7 +456,7 @@ def edit_product():
     
     if cambios_realizados:
         productos_dao.update_products_list() # Persiste los cambios en el archivo
-        print(f"✅ Producto '{producto_seleccionado.producto}' actualizado con éxito y guardado.")
+        print(f"✔️ Producto '{producto_seleccionado.producto}' actualizado con éxito y guardado.")
     else:
         print("No se realizaron cambios.")
     
@@ -535,7 +472,7 @@ def delete_product():
     
     # El método delete_product del DAO ya imprime mensajes de éxito/error.
     if productos_dao.delete_product(nombre_producto_a_eliminar):
-        print(f"✅ Producto '{nombre_producto_a_eliminar}' eliminado con éxito.")
+        print(f"✔️ Producto '{nombre_producto_a_eliminar}' eliminado con éxito.")
     else:
         print(f"❌ ERROR: Producto '{nombre_producto_a_eliminar}' no encontrado.")
     input("Presione enter para continuar...")
@@ -601,10 +538,10 @@ def run_admin_app():
                     search_product() # Buscar producto
                     cls() # Limpia después de la acción
                 elif opc_inventario == '6':
-                    print("⬅️  Regresando al menú principal de Admin...")
+                    print("[INFO] Regresando al menú principal de Admin...")
                     break # Sale del bucle del submenú de inventario
                 elif opc_inventario == '7':
-                    print("👋  ¡Gracias por usar el programa! Saliendo...")
+                    print("¡Gracias por usar el programa! Saliendo...")
                     sys.exit() # Sale del programa completamente
                 else:
                     print("🛑 Ingrese una opción válida (1-7).")
@@ -633,10 +570,10 @@ def run_admin_app():
                     search_client() # Buscar cliente
                     cls() # Limpia después de la acción
                 elif opc_clientes == '6':
-                    print("⬅️  Regresando al menú principal de Admin...")
+                    print("[INFO] Regresando al menú principal de Admin...")
                     break # Sale del bucle del submenú de clientes
                 elif opc_clientes == '7':
-                    print("👋  ¡Gracias por usar el programa! Saliendo...")
+                    print("¡Gracias por usar el programa! Saliendo...")
                     sys.exit() # Sale del programa completamente
                 else:
                     print("🛑 Ingrese una opción válida (1-7).")
@@ -644,11 +581,11 @@ def run_admin_app():
                     cls() # Limpia después de un error
         
         elif opcion_elegida == '3': # Opción: Salir de la sesión
-            print("\n🚪  Cerrando sesión de administrador...")
+            print("\nCerrando sesión de administrador...")
             break # Sale de este bucle (run_admin_app), lo que lleva de vuelta al menú inicial de login en main.py
 
         elif opcion_elegida == '4': # Opción: Salir del programa completamente
-            print("👋  ¡Gracias por usar el programa! Saliendo...")
+            print("¡Gracias por usar el programa! Saliendo...")
             sys.exit() # Sale del programa
 
         else:

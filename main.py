@@ -78,6 +78,7 @@ def main():
             print("🛑 ERROR: Opción no válida. Por favor, seleccione 1, 2 o 3.")
             input("Presione ENTER para continuar...")
 
+
 # Asegura que la función main() se ejecute solo cuando el script es ejecutado directamente.
 main()
 
