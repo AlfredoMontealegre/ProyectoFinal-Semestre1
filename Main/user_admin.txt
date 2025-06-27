@@ -1,9 +1,0 @@
-[
-    {
-        "codigo": "atorresp07",
-        "nombre": "Jos\u00e9 Alessandro Torres Parodi",
-        "cedula": "1610310051002J",
-        "telefono": "84449802",
-        "password_hashed": "$2b$12$VRi3EjL2YSkAmCqkdOAVhu85WP5GBJcDVnxH6F/IQSNAgWrJ2fulW"
-    }
-]

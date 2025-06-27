@@ -5,8 +5,6 @@ import sys
 import json
 import bcrypt
 
-USER_FILENAME = 'usuarios.txt'
-USER_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), USER_FILENAME)
 
 clientes = dao.ClienteDao()
 
@@ -46,6 +44,58 @@ def menu(usuario_nombre):
       ==================
 """) 
 
+def RegistroSesion():
+    cls()
+    print("""
+          ------> REGISTRO DE NUEVO USUARIO <------
+          """)
+    nombre_completo = validar_input("Nombres y Apellidos: ", 'str')
+    telefono_num = validar_input("Ingrese su número telefónico: ", 'tel')
+    cedula_id = validar_input("Digite su número de cédula (sin guiones): ", 'cedula')
+    
+    usuarios_existentes = clientes.get_all_clientes() 
+    
+    for user_data in usuarios_existentes: 
+        if user_data.id == cedula_id: 
+            print("❌ ERROR: Ya existe una cuenta con esta cédula. Intente iniciar sesión.")
+            input("Presione Enter para continuar...")
+            return None 
+        
+    password = validar_input("Cree su contraseña: ", permitir_char_password=True)
+    password_hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    nuevo_cliente = mod.Cliente(nombre_completo, cedula_id, telefono_num, password_hashed)
+    clientes.add(nuevo_cliente) 
+    
+    print("\n¡¡Registro Exitoso!! Ahora puedes iniciar sesión.")
+    input("Presione enter para continuar...")
+    return nuevo_cliente
+
+def InicioSesion():
+    cls()
+    print("""
+          ====== INICIAR SESIÓN ======
+          """) 
+
+    cedula_input = validar_input("Ingrese su usuario (Cédula) sin guiones y espacios: ", 'cedula')
+    password_input = validar_input("Ingrese su Contraseña: ", permitir_char_password=True)
+    
+    usuarios_cargados = clientes.get_all_clientes() 
+    
+    for user_data in usuarios_cargados: 
+        if user_data.cedula == cedula_input:
+            if user_data.password_hashed and bcrypt.checkpw(password_input.encode('utf-8'), user_data.password_hashed.encode('utf-8')):
+                print(f"¡Bienvenido {user_data.nombre}!") 
+                input("Presione Enter para continuar...")
+                return user_data 
+            else:
+                print("\n❌ Cédula o contraseña incorrecta. Intente de nuevo.")
+                input("Presione Enter para continuar...")
+                return None
+        
+    print("\n❌ Cédula o contraseña incorrecta. Intente de nuevo.")
+    input("Presione Enter para continuar...")
+    return None 
+
 def validar_input(mensaje, tipo='str', permitir_char_password=False):
     while True:
         entrada = input(mensaje).strip()
@@ -67,102 +117,13 @@ def validar_input(mensaje, tipo='str', permitir_char_password=False):
                 print("❌ ERROR. La cédula solo puede contener letras y números.")
                 continue
             
-            letras = [char for char in entrada if char.isalpha()]
-            numeros = [char for char in entrada if char.isdigit()]
-            if len(numeros) != 13 or len(letras) != 1 or (len(numeros) + len(letras)) != len(entrada):
+            letras = sum(1 for char in entrada if char.isalpha())
+            numeros = sum(1 for char in entrada if char.isdigit())
+            if numeros != 13 or letras != 1 or (numeros + letras) != len(entrada):
                 print("❌ ERROR. Datos de cédula inválidos (debe tener 13 números y 1 letra).")
                 continue
         return entrada
 
-def GuardarUsuario(cliente_obj, password_str):
-    usuarios = cargarUsuario()
-    
-    password_hashed = bcrypt.hashpw(password_str.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    
-    nuevo_usuario_data = {
-        "cedula": cliente_obj.id,
-        "nombre": cliente_obj.nombre,
-        "telefono": cliente_obj.telefono,
-        "password_hashed": password_hashed
-    }
-    
-    usuarios.append(nuevo_usuario_data)
-    
-    try:
-        with open(USER_FILE_PATH, 'w', encoding='utf-8') as file:
-            json.dump(usuarios, file, indent=4)
-            print("Usuario Guardado correctamente.")
-    except Exception as e:
-        print(f"❌ ERROR al guardar el usuario: {e}")
-
-def cargarUsuario():
-    usuarios = [] 
-    try:
-        if os.path.exists(USER_FILE_PATH) and os.path.getsize(USER_FILE_PATH) > 0:
-            with open(USER_FILE_PATH, 'r', encoding='utf-8') as file:
-                usuarios = json.load(file)
-        
-        else:
-            return []
-    except json.JSONDecodeError as e:
-        print(f"❌ ERROR: El archivo de usuarios está corrupto o mal formado (JSON). Iniciando con lista vacía. Detalle: {e}")
-    except Exception as e:
-        print(f"❌ ERROR al cargar los usuarios: {e}")
-        return []
-    return usuarios
-    
-def RegistroSesion():
-    cls()
-    print("""
-          ------> REGISTRO DE NUEVO USUARIO <------
-          """)
-    nombre_completo = validar_input("Nombres y Apellidos: ", 'str')
-    telefono_num = validar_input("Ingrese su número telefónico: ", 'tel')
-    cedula_id = validar_input("Digite su número de cédula (sin guiones): ", 'cedula')
-    
-    usuarios_existentes = cargarUsuario() 
-    
-    for user_data in usuarios_existentes: 
-        if user_data["cedula"] == cedula_id: 
-            print("❌ ERROR: Ya existe una cuenta con esta cédula. Intente iniciar sesión.")
-            input("Presione Enter para continuar...")
-            return None 
-        
-    password = validar_input("Cree su contraseña: ", permitir_char_password=True)
-    nuevo_cliente = mod.Cliente(nombre_completo, cedula_id, telefono_num)
-    
-    clientes.add(nuevo_cliente) 
-    GuardarUsuario(nuevo_cliente, password)
-    
-    print("\n¡¡Registro Exitoso!! Ahora puedes iniciar sesión.")
-    input("Presione enter para continuar...")
-    return nuevo_cliente
-
-def InicioSesion():
-    cls()
-    print("""
-          ====== INICIAR SESIÓN ======
-          """) 
-
-    cedula_input = validar_input("Ingrese su usuario (Cédula) sin guiones y espacios: ", 'cedula')
-    password_input = validar_input("Ingrese su Contraseña: ", permitir_char_password=True)
-    
-    usuarios_cargados = cargarUsuario() 
-    
-    for user_data in usuarios_cargados: 
-        if user_data["cedula"] == cedula_input:
-            if bcrypt.checkpw(password_input.encode('utf-8'), user_data["password_hashed"].encode('utf-8')):
-                print(f"¡Bienvenido {user_data['nombre']}!") 
-                input("Presione Enter para continuar...")
-                return mod.Cliente(user_data['nombre'], user_data['cedula'], user_data['telefono']) 
-            else:
-                print("\n❌ Cédula o contraseña incorrecta. Intente de nuevo.")
-                input("Presione Enter para continuar...")
-                return None
-        
-    print("\n❌ Cédula o contraseña incorrecta. Intente de nuevo.")
-    input("Presione Enter para continuar...")
-    return None 
 
 def obtenerOpcionBienvenida(main_menu=True):
     while True:
