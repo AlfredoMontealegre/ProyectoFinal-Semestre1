@@ -27,46 +27,47 @@ def cls():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 # --- Funciones de validación de entrada específicas para client_app ---
-def client_validar_input(mensaje: str, tipo: str = 'str', permitir_char_password: bool = False) -> str:
+def client_validar_input(mensaje: str, tipo: str = 'str') -> str:
     """
     Función de validación de entrada de usuario adaptada para el contexto del cliente.
     Asegura que el formato de la entrada sea correcto según el tipo especificado.
 
     Args:
         mensaje (str): El mensaje (prompt) a mostrar al usuario.
-        tipo (str): El tipo de validación a aplicar ('str', 'tel', 'cedula', 'int_pos', 'float_pos').
-        permitir_char_password (bool): Si es True y tipo es 'str', permite cualquier carácter
-                                       (usado para contraseñas).
+        tipo (str): El tipo de validación a aplicar ('str', 'tel', 'cedula', 'int_pos', 'float_pos', 'password').
 
     Returns:
         str: La entrada del usuario validada y formateada (ej. capitalizada para nombres).
     """
     while True:
-        # Si se espera una contraseña y pwinput está disponible, úsalo
-        if tipo == 'password' and pwinput:
-            entrada = pwinput.pwinput(mensaje, mask="*").strip()
+        entrada = ""
+        if tipo == 'password':
+            if pwinput:
+                entrada = pwinput.pwinput(mensaje, mask="*").strip()
+            else:
+                entrada = input(mensaje).strip()
+                print("⚠️ Advertencia: 'pwinput' no está instalado. La contraseña será visible.")
         else:
-            entrada = input(mensaje).strip() # Lee la entrada y elimina espacios al inicio/final
-            if tipo == 'password' and not pwinput:
-                print("⚠️ Advertencia: pwinput no está instalado. La contraseña será visible.")
+            entrada = input(mensaje).strip()
 
         if not entrada:
             print("⚠️ CAMPO VACÍO. Intente Nuevamente.")
             continue
 
         if tipo == 'str':
-            if not permitir_char_password:
-                # Si no es una contraseña, valida que contenga solo letras y espacios
-                if not entrada.replace(" ", "").isalpha():
-                    print("❌ ERROR. Ingrese un dato válido (solo letras).")
-                    continue
-            return entrada.title() # Retorna la cadena con la primera letra de cada palabra en mayúscula
+            # Solo aplica esta validación y formato si no es una contraseña
+            if not entrada.replace(" ", "").isalpha():
+                print("❌ ERROR. Ingrese un dato válido (solo letras).")
+                continue
+            return entrada.title()
+        
         elif tipo == 'tel':
             # Formato esperado para teléfono: 8 dígitos numéricos, iniciando con 2, 5, 7 o 8
             if not entrada.isdigit() or len(entrada) != 8 or not entrada.startswith(("8", "7", "5", "2")):
                 print("🟡 El número ingresado no es válido. Debe tener 8 dígitos y comenzar con 2 (fijos), 5, 7 u 8 (móviles).")
                 continue
             return entrada
+        
         elif tipo == 'cedula':
             # Formato esperado para cédula: 13 números seguidos de 1 letra (ej: 0012345678901A)
             if not len(entrada) == 14:
@@ -81,6 +82,7 @@ def client_validar_input(mensaje: str, tipo: str = 'str', permitir_char_password
                 continue
             
             return numeros_parte + letra_parte.upper() # Asegura que la letra final esté en mayúscula
+        
         elif tipo == 'int_pos':
             try:
                 valor = int(entrada)
@@ -91,6 +93,7 @@ def client_validar_input(mensaje: str, tipo: str = 'str', permitir_char_password
             except ValueError:
                 print("❌ ERROR: Ingrese un número entero válido.")
                 continue
+        
         elif tipo == 'float_pos':
             try:
                 valor = float(entrada)
@@ -101,9 +104,13 @@ def client_validar_input(mensaje: str, tipo: str = 'str', permitir_char_password
             except ValueError:
                 print("❌ ERROR: Ingrese un número numérico válido.")
                 continue
+        
         elif tipo == 'password': # Tipo específico para contraseñas
-            return entrada
-        return entrada # Para el caso de permitir_char_password, retorna la entrada tal cual
+            return entrada # Retorna la contraseña tal cual, sin modificar
+        
+        # Fallback en caso de que el tipo no se maneje explícitamente (no debería ocurrir si los tipos son controlados)
+        return entrada
+
 
 # --- Funciones para mostrar Menús ---
 
@@ -171,7 +178,7 @@ def register_client_session():
             input("Presione Enter para continuar...")
             return None # Retorna None para indicar que el registro falló
         
-    password = client_validar_input("Cree su contraseña: ", permitir_char_password=True)
+    password = client_validar_input("Cree su contraseña: ", 'password') # Se cambió a tipo 'password'
     # Hashea la contraseña usando bcrypt antes de crear el objeto Cliente
     password_hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
@@ -187,40 +194,46 @@ def login_client_session():
     """
     Permite al usuario iniciar sesión como cliente.
     Verifica las credenciales (cédula y contraseña) contra los datos almacenados.
+    Incluye un límite de 3 intentos de inicio de sesión.
     """
     cls()
     print("""
           ====== INICIAR SESIÓN (CLIENTE) ======
           """) 
 
-    cedula_input = client_validar_input("Ingrese su usuario (Cédula, 13 números + 1 letra) sin guiones y espacios: ", 'cedula')
-    password_input = client_validar_input("Ingrese su Contraseña: ", permitir_char_password=True)
-    
     usuarios_cargados = clientes_dao.get_all_clientes() # Carga todos los clientes para verificar
+    intentos_maximos = 3
 
-    # Busca el cliente por la cédula proporcionada
-    cliente_encontrado = None
-    for user_data in usuarios_cargados: 
-        if user_data.cedula == cedula_input:
-            cliente_encontrado = user_data
-            break
-    
-    if cliente_encontrado:
-        # Si el cliente fue encontrado, verifica su contraseña
-        # Comprueba si tiene una contraseña hasheada y si coincide con la entrada
-        if cliente_encontrado.password_hashed and bcrypt.checkpw(password_input.encode('utf-8'), cliente_encontrado.password_hashed.encode('utf-8')):
-            print(f"¡Bienvenido {cliente_encontrado.nombre}!") 
-            input("Presione Enter para continuar...")
-            return cliente_encontrado # Retorna el objeto Cliente logeado
-        else:
-            print("\n❌ Cédula o contraseña incorrecta. Intente de nuevo.")
-            input("Presione Enter para continuar...")
-            return None # Retorna None si la contraseña no coincide o no hay hash
+    for intento in range(1, intentos_maximos + 1):
+        print(f"\n--- Intento {intento}/{intentos_maximos} ---")
+        cedula_input = client_validar_input("Ingrese su usuario (Cédula, 13 números + 1 letra) sin guiones y espacios: ", 'cedula')
+        password_input = client_validar_input("Ingrese su Contraseña: ", 'password') # Se cambió a tipo 'password'
         
-    else: # Si no se encontró ningún cliente con la cédula
-        print("\n❌ Cédula o contraseña incorrecta. Intente de nuevo.")
-        input("Presione Enter para continuar...")
-        return None # Retorna None si el usuario no existe
+        cliente_encontrado = None
+        for user_data in usuarios_cargados: 
+            if user_data.cedula == cedula_input:
+                cliente_encontrado = user_data
+                break
+        
+        if cliente_encontrado:
+            # Si el cliente fue encontrado, verifica su contraseña
+            # Comprueba si tiene una contraseña hasheada y si coincide con la entrada
+            if cliente_encontrado.password_hashed and bcrypt.checkpw(password_input.encode('utf-8'), cliente_encontrado.password_hashed.encode('utf-8')):
+                print(f"¡Bienvenido {cliente_encontrado.nombre}!") 
+                input("Presione Enter para continuar...")
+                return cliente_encontrado # Retorna el objeto Cliente logeado
+            else:
+                print("❌ Cédula o contraseña incorrecta. Intente de nuevo.")
+                if intento < intentos_maximos:
+                    print(f"Te quedan {intentos_maximos - intento} intentos.")
+        else: # Si no se encontró ningún cliente con la cédula
+            print("❌ Cédula o contraseña incorrecta. Intente de nuevo.")
+            if intento < intentos_maximos:
+                print(f"Te quedan {intentos_maximos - intento} intentos.")
+    
+    print("\n🛑 Has agotado tus intentos de inicio de sesión. Regresando al menú principal.")
+    input("Presiona ENTER para continuar...")
+    return None # Retorna None si el usuario no existe o se agotan los intentos
 
 # --- Funciones de Acciones de Cliente ---
 

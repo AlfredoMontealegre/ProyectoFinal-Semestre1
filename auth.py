@@ -6,6 +6,8 @@ import os
 import pickle
 import bcrypt # Usamos esto para que las contraseñas no se vean en el archivo
 import getpass # Para pedir la contraseña sin que se muestre en pantalla
+import sys # Importamos sys para poder salir del programa
+
 try:
     import pwinput # Para que salgan asteriscos (*) cuando escribes la contraseña
 except ImportError:
@@ -13,7 +15,8 @@ except ImportError:
 
 # Importamos las "recetas" (clases) de nuestros usuarios y las funciones para guardar/cargar
 from Models.clases import Admin 
-from Dao.funciones import AdminDao, guardar_admin_users, generar_codigo_trabajador # ¡Ahora importamos esto de Dao!
+# ¡Ahora importamos AdminDao y generar_codigo_trabajador!
+from Dao.funciones import AdminDao, guardar_admin_users, generar_codigo_trabajador 
 
 def _hash_password(password: str) -> str:
     """
@@ -50,6 +53,7 @@ def crear_admin_iniciales():
         print("ℹ️ Ya hay administradores registrados.")
 
 # === TIPO 1: LOGIN BÁSICO (Para cuando no importa que se vea) ===
+# Se mantiene la función por si se quiere reintroducir, pero ya no se usa directamente en el menú
 def login_basico() -> bool:
     """
     Login normalito, la contraseña se ve.
@@ -62,7 +66,7 @@ def login_basico() -> bool:
     usuario_input = input("Tu nombre de usuario: ").strip() # Pedimos el nombre
     clave_input = input("Tu contraseña: ").strip() # Pedimos la contraseña (se ve)
     
-    admin_user = admin_dao.find_admin_by_username(usuario_input) # Buscamos al admin por su nombre
+    admin_user = admin_dao.find_admin_by_code(usuario_input) # Buscamos al admin por su nombre
     
     # Comprobamos: ¿Existe? ¿Tiene contraseña? ¿Coincide la contraseña?
     if admin_user and admin_user.password_hashed and _check_password(clave_input, admin_user.password_hashed):
@@ -73,6 +77,7 @@ def login_basico() -> bool:
         return False
 
 # === TIPO 2: LOGIN CON GETPASS (Para que no se vea la contraseña) ===
+# Se mantiene la función por si se quiere reintroducir, pero ya no se usa directamente en el menú
 def login_con_getpass() -> bool:
     """
     Login donde la contraseña no se ve cuando la escribes.
@@ -89,7 +94,7 @@ def login_con_getpass() -> bool:
     usuario_input = input("Tu nombre de usuario: ").strip()
     clave_input = getpass.getpass("Tu contraseña: ") # Aquí se oculta mágicamente
     
-    admin_user = admin_dao.find_admin_by_username(usuario_input)
+    admin_user = admin_dao.find_admin_by_code(usuario_input)
     
     if admin_user and admin_user.password_hashed and _check_password(clave_input, admin_user.password_hashed):
         print("✅ ¡Entraste! ¡Bienvenido!")
@@ -101,28 +106,44 @@ def login_con_getpass() -> bool:
 # === TIPO 3: LOGIN CON ASTERISCOS (Para que salgan estrellitas) ===
 def login_con_asteriscos() -> bool:
     """
-    Login donde ves estrellitas (*) cuando escribes la contraseña. ¡Más bonito!
+    Permite el inicio de sesión mostrando asteriscos (*) mientras se escribe la contraseña,
+    utilizando el módulo `pwinput`.
+    Incluye un límite de 3 intentos de inicio de sesión.
+    
+    Returns:
+        bool: True si el login es exitoso, False en caso contrario o si se agotan los intentos.
     """
     if pwinput is None:
         print("❌ ¡Uy! Para los asteriscos, necesitas instalar 'pwinput'. Prueba con 'pip install pwinput'.")
-        return False # No podemos hacer este login sin la librería
+        print("No se puede continuar con este tipo de login.")
+        return False # No permite el inicio de sesión sin pwinput
 
-    print("\n=== LOGIN CON ESTRELLITAS ===")
-    print("(Verás * mientras escribes)")
-    
     admin_dao = AdminDao()
+    intentos_maximos = 3
     
-    usuario_input = input("Tu nombre de usuario: ").strip()
-    clave_input = pwinput.pwinput("Tu contraseña: ", mask="*") # Aquí salen los asteriscos
+    print("\n=== LOGIN CON ASTERISCOS ===")
+    print(f"(Tienes {intentos_maximos} intentos para ingresar)")
+
+    for intento in range(1, intentos_maximos + 1):
+        print(f"\n--- Intento {intento}/{intentos_maximos} ---")
+        # ¡IMPORTANTE! Ahora pedimos el código de trabajador, no el nombre completo
+        codigo_input = input("Tu código de trabajador (ej. juanx12): ").strip() 
+        clave_input = pwinput.pwinput("Tu contraseña: ", mask="*") # Aquí salen los asteriscos
+        
+        # Buscamos al administrador por su CÓDIGO
+        admin_user = admin_dao.find_admin_by_code(codigo_input)
+        
+        if admin_user and admin_user.password_hashed and _check_password(clave_input, admin_user.password_hashed):
+            print("✅ ¡Entraste! ¡Bienvenido!")
+            return True
+        else:
+            print("❌ ¡Código de trabajador o contraseña incorrectos!")
+            if intento < intentos_maximos:
+                print(f"Te quedan {intentos_maximos - intento} intentos.")
     
-    admin_user = admin_dao.find_admin_by_username(usuario_input)
-    
-    if admin_user and admin_user.password_hashed and _check_password(clave_input, admin_user.password_hashed):
-        print("✅ ¡Entraste! ¡Bienvenido!")
-        return True
-    else:
-        print("❌ ¡Usuario o contraseña incorrectos!")
-        return False
+    print("\n🛑 Has agotado tus intentos de inicio de sesión. Regresando al menú principal.")
+    input("Presiona ENTER para continuar...")
+    return False
 
 def mostrar_usuarios_disponibles():
     """
@@ -132,12 +153,12 @@ def mostrar_usuarios_disponibles():
     admin_dao = AdminDao()
     admins = admin_dao.get_all_admin_users()
     
-    print("\nℹ️ Aquí están los nombres de admins que puedes usar para entrar:")
+    print("\nℹ️ Aquí están los admins registrados (usa su Código para iniciar sesión):")
     if admins:
         for admin_user in admins:
-            print(f"- {admin_user.nombre} (Código: {admin_user.codigo})")
+            print(f"- Nombre: {admin_user.nombre}, Código: {admin_user.codigo}") # Mostrar el código también
     else:
-        print("¡No hay admins registrados! Crea uno con la opción 5.")
+        print("¡No hay admins registrados! Crea uno con la opción 3.")
     print("Nota: Las contraseñas están ocultas por seguridad.")
 
 def agregar_nuevo_admin():
@@ -155,8 +176,9 @@ def agregar_nuevo_admin():
         return False
 
     # Revisamos si ya existe alguien con ese nombre de usuario (el nombre es el usuario en este contexto)
-    if admin_dao.find_admin_by_username(nombre):
-        print(f"⚠️ ¡Cuidado! Ya existe un admin con el nombre '{nombre}'. Elige otro.")
+    # Aunque el login es por código, el nombre debe ser único para evitar confusiones
+    if admin_dao.find_admin_by_code(nombre): # Si por casualidad el nombre coincide con un código ya existente
+        print(f"⚠️ ¡Cuidado! Ya existe un admin con el nombre '{nombre}' o un código similar. Elige otro nombre.")
         return False
 
     # Generamos el código automáticamente
@@ -200,35 +222,30 @@ def agregar_nuevo_admin():
 def seleccionar_tipo_login() -> bool:
     """
     Muestra las opciones de cómo quieres iniciar sesión como admin.
+    Ahora solo ofrece el login con asteriscos para el acceso directo.
     """
     print("\n" + "="*60)
     print("          SISTEMA DE AUTENTICACIÓN")
     print("="*60)
-    print("Elige cómo quieres entrar al sistema:")
-    print("1. Login Básico (la contraseña se ve)")
-    print("2. Login con getpass (la contraseña se oculta)")
-    print("3. Login con asteriscos (ves * al escribir)")
-    print("4. Ver los usuarios administradores (por si los olvidaste)")
-    print("5. ¡Agregar un admin nuevo!")
+    print("Elige cómo quieres entrar al sistema o gestionar admins:")
+    print("1. Iniciar sesión (con asteriscos *)") # Única opción de login directo
+    print("2. Ver los usuarios administradores (por si los olvidaste)")
+    print("3. ¡Agregar un admin nuevo!")
     print("="*50)
     
     while True:
-        opcion = input("Escribe el número de tu opción (1-5): ").strip()
+        opcion = input("Escribe el número de tu opción (1-3): ").strip()
         
         if opcion == "1":
-            return login_basico()
+            return login_con_asteriscos() # Directamente al login con asteriscos
         elif opcion == "2":
-            return login_con_getpass()
-        elif opcion == "3":
-            return login_con_asteriscos()
-        elif opcion == "4":
             mostrar_usuarios_disponibles() # Muestra y luego te deja elegir otra opción
             continue 
-        elif opcion == "5":
+        elif opcion == "3":
             agregar_nuevo_admin() # Agrega y luego te deja elegir otra opción
             continue 
         else:
-            print("🛑 ¡Esa opción no existe! Elige 1, 2, 3, 4 o 5.")
+            print("🛑 ¡Esa opción no existe! Elija 1, 2 o 3.")
 
 def inicializar_auth() -> bool:
     """

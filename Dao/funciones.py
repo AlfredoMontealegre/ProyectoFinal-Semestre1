@@ -365,18 +365,18 @@ class AdminDao:
         """
         return self.users
     
-    def find_admin_by_username(self, username: str) -> models.Admin | None:
+    def find_admin_by_code(self, admin_code: str) -> models.Admin | None:
         """
-        Busca un administrador por su nombre de usuario (sensible a mayúsculas/minúsculas).
+        Busca un administrador por su código de trabajador (insensible a mayúsculas/minúsculas).
         
         Args:
-            username (str): El nombre de usuario (campo 'nombre' del Admin) a buscar.
+            admin_code (str): El código de trabajador del Admin a buscar.
             
         Returns:
             models.Admin | None: El objeto Admin si se encuentra, de lo contrario None.
         """
         for user in self.users:
-            if user.nombre == username: # La comparación es sensible a mayúsculas/minúsculas aquí
+            if user.codigo.lower() == admin_code.lower(): # Compara de forma insensible a mayúsculas/minúsculas
                 return user
         return None
 
