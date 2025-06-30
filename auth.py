@@ -228,7 +228,7 @@ def seleccionar_tipo_login() -> bool:
     print("          SISTEMA DE AUTENTICACIÓN")
     print("="*60)
     print("Elige cómo quieres entrar al sistema o gestionar admins:")
-    print("1. Iniciar sesión (con asteriscos *)") # Única opción de login directo
+    print("1. Iniciar sesión") # Única opción de login directo
     print("2. Ver los usuarios administradores (por si los olvidaste)")
     print("3. ¡Agregar un admin nuevo!")
     print("="*50)
